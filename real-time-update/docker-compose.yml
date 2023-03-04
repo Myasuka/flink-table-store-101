@@ -37,6 +37,8 @@ services:
       network: host
     environment:
       - MYSQL_ROOT_PASSWORD=rootpw
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
     init: true
     privileged: true
     extra_hosts:
