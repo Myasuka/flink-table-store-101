@@ -207,12 +207,12 @@ Finish loading data, current #(record) is 59986052
 ```
 
 ### Step2 - Download Flink Release, FTS and Other Dependencies
-This demo uses  [Flink 1.14.5 release](https://flink.apache.org/downloads.html#apache-flink-1145), and the extra dependecies needed are
+This demo uses  Flink 1.17-SNAPSHOT, and the extra dependecies needed are
 - Flink MySQL CDC connector 
-- FTS compiled on master branch with Flink 1.14 profile
+- FTS compiled on master branch with Flink 1.16 profile
 - Hadoop Bundle Jar
 
-To ease the preparation，the mentioned dependecies are already packed under the directory of `flink-table-store-101/flink/lib` of this repository, you can directly download and put them under `flink-1.14.5/lib` on your local machine. If you prefer do it by yourself, you can also reach to
+To ease the preparation，the mentioned dependecies are already packed under the directory of `flink-table-store-101/flink/lib` of this repository, you can directly download and put them under `flink-1.17-SNAPSHOT/lib` on your local machine. If you prefer do it by yourself, you can also reach to
 
 - [flink-sql-connector-mysql-cdc-2.2.1.jar](https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar) 
 - [Hadoop Bundle Jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar) 
@@ -221,14 +221,16 @@ To ease the preparation，the mentioned dependecies are already packed under the
 Now you can list the `lib` directory to check the completeness of denepdnecies.
 ```
 lib
-├── flink-csv-1.14.5.jar
-├── flink-dist_2.11-1.14.5.jar
-├── flink-json-1.14.5.jar
+├── flink-csv-1.17-SNAPSHOT.jar
+├── flink-connector-files-1.17-SNAPSHOT.jar
+├── flink-dist-1.17-SNAPSHOT.jar
+├── flink-json-1.17-SNAPSHOT.jar
 ├── flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
-├── flink-shaded-zookeeper-3.4.14.jar
 ├── flink-sql-connector-mysql-cdc-2.2.1.jar
-├── flink-table-store-dist-0.3-SNAPSHOT.jar
-├── flink-table_2.11-1.14.5.jar
+├── flink-table-store-flink-1.16-0.4-SNAPSHOT.jar
+├── flink-table-api-java-uber-1.17-SNAPSHOT.jar
+├── flink-table-planner-loader-1.17-SNAPSHOT.jar
+├── flink-table-runtime-1.17-SNAPSHOT.jar
 ├── log4j-1.2-api-2.17.1.jar
 ├── log4j-api-2.17.1.jar
 ├── log4j-core-2.17.1.jar
@@ -236,7 +238,7 @@ lib
 ```
 
 ### Step3 - Modify flink-conf and Start Cluster
-`vim flink-1.14.5/conf/flink-conf.yaml` with following conf
+`vim flink-1.17-SNAPSHOT/conf/flink-conf.yaml` with following conf
 ```yaml
 jobmanager.memory.process.size: 4096m
 taskmanager.memory.process.size: 4096m
@@ -247,9 +249,11 @@ state.backend: rocksdb
 state.backend.incremental: true
 jobmanager.execution.failover-strategy: region
 execution.checkpointing.checkpoints-after-tasks-finish.enabled: true
+state.checkpoints.dir: file:///tmp/flink-checkpoints
+execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
 ```
 
-If you want to observe the verbose info of compaction and commit for FTS, you can pick one or all of the following properties to `log4j.properties` under the `flin-1.14.5/conf` as needed
+If you want to observe the verbose info of compaction and commit for FTS, you can pick one or all of the following properties to `log4j.properties` under the `flink-1.17-SNAPSHOT/conf` as needed
 
 ```
 # Log FTS
@@ -263,13 +267,13 @@ logger.enumerator.name = org.apache.flink.table.store.connector.source.Continuou
 logger.enumerator.level = DEBUG
 ```
 
-Then start the cluster by `./bin/start-cluster.sh` under `flink-1.14.5`
+Then start the cluster by `./bin/start-cluster.sh` under `flink-1.17-SNAPSHOT`
 
 ![start-cluster](../pictures/start-cluster.png)
 
 
 ### Step4 - Start Flink SQL CLI with Initialized Schema SQL
-Under `flink-1.14.5` touch a file `schema.sql` and paste the following SQL to initialize.
+Under `flink-1.17-SNAPSHOT` touch a file `schema.sql` and paste the following SQL to initialize.
 ```sql
 -- Switch to streaming mode
 SET 'execution.runtime-mode' = 'streaming';
@@ -373,6 +377,7 @@ Finish loading data, current #(record) is 59986052
 Job1 - `ods_lineitem` to `dwd_lineitem`
 ```sql
 SET 'pipeline.name' = 'dwd_lineitem';
+
 INSERT INTO dwd_lineitem
 SELECT
   `l_orderkey`,
@@ -407,7 +412,8 @@ After completing the full snapshot sync, you can start the ADS aggregation job a
 Job2 - Q1 `ads_pricing_summary`
 ```sql
 SET 'pipeline.name' = 'ads_pricing_summary';
-INSERT INTO `ads_pricing_summary`
+I
+NSERT INTO `ads_pricing_summary`
 SELECT 
   `l_returnflag`,
   `l_linestatus`,
@@ -477,7 +483,7 @@ And then, you can notice that the incremental snapshot are sync to `dwd_lineitem
 
 ### Step8 - Finish Demo & Cleanup
 1. Execute `exit;` to exit Flink SQL CLI
-2. Under `flink-1.14.5` directory, execute `./bin/stop-cluster.sh` to stop Flink cluster
+2. Under `flink-1.17-SNAPSHOT` directory, execute `./bin/stop-cluster.sh` to stop Flink cluster
 3. Under `table-store-101/real-time-update` directory, execute 
     ```bash
     docker compose down && docker rmi real-time-update_mysql-101 && docker volume prune && docker builder prune
