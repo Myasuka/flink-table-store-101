@@ -210,7 +210,7 @@ Demo 运行使用 Flink 1.17 版本（由于作业需要使用RocksDB statebacke
 - 基于 Flink 1.16 编译的 FTS
 - Hadoop Bundle Jar
 
-为方便操作，您可以直接在本项目的 `flink-table-store-101/flink/lib` 目录下载所有依赖，并放置于本地 `flink-1.17-SNAPSHOT/lib` 目录下，也可以自行下载及编译
+为方便操作，您可以直接在本项目的 `flink-table-store-101/flink/lib` 目录下载所有依赖，并放置于本地 `flink-1.17.0/lib` 目录下，也可以自行下载及编译
 
 - [flink-sql-connector-mysql-cdc-2.2.1.jar](https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar) 
 - [Hadoop Bundle Jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar) 
@@ -220,16 +220,16 @@ Demo 运行使用 Flink 1.17 版本（由于作业需要使用RocksDB statebacke
 上述步骤完成后，lib 目录结构如图所示  
 ```
 lib
-├── flink-csv-1.17-SNAPSHOT.jar
-├── flink-connector-files-1.17-SNAPSHOT.jar
-├── flink-dist-1.17-SNAPSHOT.jar
-├── flink-json-1.17-SNAPSHOT.jar
+├── flink-csv-1.17.0.jar
+├── flink-connector-files-1.17.0.jar
+├── flink-dist-1.17.0.jar
+├── flink-json-1.17.0.jar
 ├── flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 ├── flink-sql-connector-mysql-cdc-2.2.1.jar
 ├── flink-table-store-flink-1.16-0.4-SNAPSHOT.jar
-├── flink-table-api-java-uber-1.17-SNAPSHOT.jar
-├── flink-table-planner-loader-1.17-SNAPSHOT.jar
-├── flink-table-runtime-1.17-SNAPSHOT.jar
+├── flink-table-api-java-uber-1.17.0.jar
+├── flink-table-planner-loader-1.17.0.jar
+├── flink-table-runtime-1.17.0.jar
 ├── log4j-1.2-api-2.17.1.jar
 ├── log4j-api-2.17.1.jar
 ├── log4j-core-2.17.1.jar
@@ -237,7 +237,7 @@ lib
 ```
 
 ### 第三步：修改 flink-conf 配置文件并启动集群
-`vim flink-1.17-SNAPSHOT/conf/flink-conf.yaml` 文件，按如下配置修改
+`vim flink-1.17.0/conf/flink-conf.yaml` 文件，按如下配置修改
 ```yaml
 jobmanager.memory.process.size: 4096m
 taskmanager.memory.process.size: 4096m
@@ -251,7 +251,7 @@ state.checkpoints.dir: file:///tmp/flink-checkpoints
 execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
 ```
 
-若想观察 FTS 的异步合并、Snapshot 提交及流读等信息，可以在 `flink-1.17-SNAPSHOT/conf` 目录下修改 log4j.properties 文件，按需增加如下配置
+若想观察 FTS 的异步合并、Snapshot 提交及流读等信息，可以在 `flink-1.17.0/conf` 目录下修改 log4j.properties 文件，按需增加如下配置
 ```
 # Log FTS
 logger.commit.name = org.apache.flink.table.store.file.operation.FileStoreCommitImpl
@@ -263,12 +263,12 @@ logger.compaction.level = DEBUG
 logger.enumerator.name = org.apache.flink.table.store.connector.source.ContinuousFileSplitEnumerator
 logger.enumerator.level = DEBUG
 ```
-这里我们只开启提交的 DEBUG，然后在 `flink-1.17-SNAPSHOT` 目录下执行 `./bin/start-cluster.sh`
+这里我们只开启提交的 DEBUG，然后在 `flink-1.17.0` 目录下执行 `./bin/start-cluster.sh`
 
 ![start-cluster](../pictures/start-cluster.png)
 
 ### 第四步：初始化表 schema 并启动 Flink SQL CLI
-在 `flink-1.17-SNAPSHOT` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 FTS Catalog 作为 init sql
+在 `flink-1.17.0` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 FTS Catalog 作为 init sql
 ```sql
 -- 设置使用流模式
 SET 'execution.runtime-mode' = 'streaming';
@@ -483,7 +483,7 @@ Start to apply Old Sales Refresh Function (RF2) for pair 20
 
 ### 第八步：结束 Demo & 释放资源
 1. 执行 `exit;` 退出 Flink SQL CLI
-2. 在 `flink-1.17-SNAPSHOT` 下执行 `./bin/stop-cluster.sh` 停止 Flink 集群
+2. 在 `flink-1.17.0` 下执行 `./bin/stop-cluster.sh` 停止 Flink 集群
 3. 在 `table-store-101/real-time-update` 目录下执行 
     ```bash
     docker compose down && docker rmi real-time-update_mysql-101 && docker volume prune && docker builder prune
