@@ -1,5 +1,5 @@
 # 全增量一体 CDC 实时入湖
-*其它语言版本* [English](https://github.com/LadyForest/flink-table-store-101/tree/master/real-time-update)
+*其它语言版本* [English](https://github.com/Myasuka/flink-table-store-101/tree/apple-silicon/real-time-update)
 
 ## 用例简介
 Flink Table Store（以下简称 **FTS**）作为支持实时更新的高性能湖存储，本用例展示了在千万数据规模下使用全量 + 增量一体化同步 MySQL 订单表到 FTS 明细表、下游计算聚合及持续消费更新的能力。整体流程如下图所示，其中 TPC-H 数据生成器和 MySQL 运行在 docker 容器内，本机只需要下载 Flink 包及 FTS 相关依赖即可。

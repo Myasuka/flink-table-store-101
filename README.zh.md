@@ -2,7 +2,7 @@
 
 这是一个围绕 [Flink Table Store](https://github.com/apache/flink-table-store) (*以下简称* **FTS**) 用例和特性展示的项目集合。
 
-*其它语言版本* [English](https://github.com/LadyForest/flink-table-store-101#readme)
+*其它语言版本* [English](https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/README.md)
 
 ## 用例展示
 <table>
@@ -15,12 +15,12 @@
     </thead>
     <tbody>
         <tr>
-          <td><b><code><a href="https://github.com/LadyForest/flink-table-store-101/blob/master/real-time-update/README.zh.md">全增量一体 CDC 实时入湖</a></code></b></td>
+          <td><b><code><a href="https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/real-time-update/README.zh.md">全增量一体 CDC 实时入湖</a></code></b></td>
             <td rowspan=1>MySQL, Flink, Flink CDC</td>
             <td rowspan=2>基于 <a href="https://www.tpc.org/tpch/">TPC-H 数据集</a>构建的实时 ETL 链路</td>
         </tr>
         <tr>
-          <td><b><code><a href="https://github.com/LadyForest/flink-table-store-101/tree/master/lookup-join/README.zh.md">基于 FTS 的维表连接及预聚合</a></code></b></td>
+          <td><b><code><a href="https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/lookup-join/README.zh.md">基于 FTS 的维表连接及预聚合</a></code></b></td>
           <td>MySQL, Flink, Flink CDC, Zeppelin</td>
         </tr>
     </tbody>

@@ -1,5 +1,5 @@
 # Real-time Full and Incremental Snapshot Loading - Flink Table Store as a Streaming Lakehouse
-*Read this in other languages* [简体中文](https://github.com/LadyForest/flink-table-store-101/blob/master/real-time-update/README.zh.md)
+*Read this in other languages* [简体中文](https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/real-time-update/README.zh.md)
 
 ## Brief Introduction
 This is a handy demo to illustrate how Flink Table Store (*abbr.* **FTS**) supports real-time records updates at the sacle of ten millions using a laptop. 

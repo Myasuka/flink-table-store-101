@@ -1,5 +1,5 @@
 # Lookup Join and Pre-aggregated Insert using Flink Table Store
-*Read this in other languages* [简体中文](https://github.com/LadyForest/flink-table-store-101/blob/master/lookup-join/README.zh.md)
+*Read this in other languages* [简体中文](https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/lookup-join/README.zh.md)
 
 ## Brief Introduction
 This is a handy demo to illustrate how Flink Table Store (*abbr.* **FTS**) supports look-up join and use pre-aggregate as merge engine. The aggregated result is visualized by Apache Zeppelin.
