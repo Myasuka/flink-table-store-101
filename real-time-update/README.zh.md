@@ -2,11 +2,11 @@
 *其它语言版本* [English](https://github.com/Myasuka/flink-table-store-101/tree/apple-silicon/real-time-update)
 
 ## 用例简介
-Flink Table Store（以下简称 **FTS**）作为支持实时更新的高性能湖存储，本用例展示了在千万数据规模下使用全量 + 增量一体化同步 MySQL 订单表到 FTS 明细表、下游计算聚合及持续消费更新的能力。整体流程如下图所示，其中 TPC-H 数据生成器和 MySQL 运行在 docker 容器内，本机只需要下载 Flink 包及 FTS 相关依赖即可。
+Paimon 作为支持实时更新的高性能湖存储，本用例展示了在千万数据规模下使用全量 + 增量一体化同步 MySQL 订单表到 Paimon 明细表、下游计算聚合及持续消费更新的能力。整体流程如下图所示，其中 TPC-H 数据生成器和 MySQL 运行在 docker 容器内，本机只需要下载 Flink 包及 Paimon 相关依赖即可。
 
 ![diagram](../pictures/diagram.png) 
 
-数据源由 [TPC-H](https://www.tpc.org/tpch/) toolkit 生成并导入 MySQL，在写入 FTS 时以 `l_shipdate` 字段作为业务时间定义分区 `l_year` 和 `l_month`，时间跨度从 1992.1-1998.12，动态写入 84 个分区，详细配置如下表所示。
+数据源由 [TPC-H](https://www.tpc.org/tpch/) toolkit 生成并导入 MySQL，在写入 Paimon 时以 `l_shipdate` 字段作为业务时间定义分区 `l_year` 和 `l_month`，时间跨度从 1992.1-1998.12，动态写入 84 个分区，详细配置如下表所示。
 
 <table>
     <thead>
@@ -38,7 +38,7 @@ Flink Table Store（以下简称 **FTS**）作为支持实时更新的高性能�
           <td>单机 2 个并发</td>
         </tr>
         <tr>
-          <td>FTS Bucket Number</td>
+          <td>Paimon Bucket Number</td>
           <td>2</td>
           <td>每个分区下生成 2 个 bucket</td>
         </tr>
@@ -181,7 +181,7 @@ TPC-H 作为一个经典的 Ad-hoc query 性能测试 benchmark，其包含的�
 ## 快速开始 
 
 ### 步骤简介
-本用例会在第一步中将全量订单数据（约 59.9 million）导入 MySQL container，预计耗时 15 min，在此期间您可以准备好 Flink 及 FTS 等环境，等待数据导入完毕，然后启动 Flink 作业。本案例中使用的 MySQL container 会在上述数据导入 MySQL 后自动倒计时 1 小时，然后开始持续触发 TPC-H 产生 RF1（新增订单）和 RF2（删除已有订单）来模拟增量更新（每组新增和删除之间间隔 10s）。以 100 组更新为例，将会产生 6 million 新增订单和 1.5 million 删除订单（注：TPC-H 产生的删除订单为主订单 ID，由于 `lineitem` 存在联合主键，故实际删除数据量稍大于 1.5 million）。此过程会一直持续，直至 container 停止。
+本用例会在第一步中将全量订单数据（约 59.9 million）导入 MySQL container，预计耗时 15 min，在此期间您可以准备好 Flink 及 Paimon 等环境，等待数据导入完毕，然后启动 Flink 作业。本案例中使用的 MySQL container 会在上述数据导入 MySQL 后自动倒计时 1 小时，然后开始持续触发 TPC-H 产生 RF1（新增订单）和 RF2（删除已有订单）来模拟增量更新（每组新增和删除之间间隔 10s）。以 100 组更新为例，将会产生 6 million 新增订单和 1.5 million 删除订单（注：TPC-H 产生的删除订单为主订单 ID，由于 `lineitem` 存在联合主键，故实际删除数据量稍大于 1.5 million）。此过程会一直持续，直至 container 停止。
 
 ### 第一步：构建镜像，启动容器服务
 在开始之前，请确保本机 Docker Disk Image 至少有 20G 空间，若空间不足，请将 docker-compose.yml 文件中第 32 行 `sf` 改为 1（减少数据规模，此时生成约 736M 数据[^1]） 
@@ -204,32 +204,32 @@ docker compose build --no-cache && docker compose up -d --force-recreate
 Finish loading data, current #(record) is 59986052
 ```
 
-### 第二步：下载 Flink、FTS 及其他所需依赖
+### 第二步：下载 Flink、Paimon 及其他所需依赖
 Demo 运行使用 Flink 1.17 版本（由于作业需要使用RocksDB statebackend, Flink-1.17上的FRocksDB才支持了macos），需要的其它依赖如下
 - Flink MySQL CDC connector 
-- 基于 Flink 1.16 编译的 FTS
+- 基于 Flink 1.16 编译的 Paimon
 - Hadoop Bundle Jar
 
 为方便操作，您可以直接在本项目的 `flink-table-store-101/flink/lib` 目录下载所有依赖，并放置于本地 `flink-1.17.0/lib` 目录下，也可以自行下载及编译
 
 - [flink-sql-connector-mysql-cdc-2.2.1.jar](https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar) 
 - [Hadoop Bundle Jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar) 
-- 获取最新 master 分支并使用 JKD8 编译 FTS 0.4-SNAPSHOT 版本
-  `mvn clean package -pl :flink-table-store-flink-1.16 -am -DskipTests`
+- 获取最新 master 分支并使用 JKD8 编译 Paimon 0.4 版本
+  `mvn clean package -pl :paimon-flink-1.17 -am -DskipTests`
 
 上述步骤完成后，lib 目录结构如图所示  
 ```
 lib
-├── flink-csv-1.17.0.jar
-├── flink-connector-files-1.17.0.jar
-├── flink-dist-1.17.0.jar
-├── flink-json-1.17.0.jar
+├── flink-csv-1.17-SNAPSHOT.jar
+├── flink-connector-files-1.17-SNAPSHOT.jar
+├── flink-dist-1.17-SNAPSHOT.jar
+├── flink-json-1.17-SNAPSHOT.jar
 ├── flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
 ├── flink-sql-connector-mysql-cdc-2.2.1.jar
 ├── flink-table-store-flink-1.16-0.4-SNAPSHOT.jar
-├── flink-table-api-java-uber-1.17.0.jar
-├── flink-table-planner-loader-1.17.0.jar
-├── flink-table-runtime-1.17.0.jar
+├── flink-table-api-java-uber-1.17-SNAPSHOT.jar
+├── flink-table-planner-loader-1.17-SNAPSHOT.jar
+├── flink-table-runtime-1.17-SNAPSHOT.jar
 ├── log4j-1.2-api-2.17.1.jar
 ├── log4j-api-2.17.1.jar
 ├── log4j-core-2.17.1.jar
@@ -239,6 +239,7 @@ lib
 ### 第三步：修改 flink-conf 配置文件并启动集群
 `vim flink-1.17.0/conf/flink-conf.yaml` 文件，按如下配置修改
 ```yaml
+jobmanager.rpc.address: localhost
 jobmanager.memory.process.size: 4096m
 taskmanager.memory.process.size: 4096m
 taskmanager.numberOfTaskSlots: 8
@@ -251,16 +252,16 @@ state.checkpoints.dir: file:///tmp/flink-checkpoints
 execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
 ```
 
-若想观察 FTS 的异步合并、Snapshot 提交及流读等信息，可以在 `flink-1.17.0/conf` 目录下修改 log4j.properties 文件，按需增加如下配置
+若想观察 FTS 的异步合并、Snapshot 提交及流读等信息，可以在 `flink-1.17-SNAPSHOT/conf` 目录下修改 log4j.properties 文件，按需增加如下配置
 ```
-# Log FTS
-logger.commit.name = org.apache.flink.table.store.file.operation.FileStoreCommitImpl
+# Log Paimon
+logger.commit.name = org.apache.paimon.operation.FileStoreCommitImpl
 logger.commit.level = DEBUG
 
-logger.compaction.name = org.apache.flink.table.store.file.mergetree.compact
+logger.compaction.name = org.apache.paimon.mergetree.compact
 logger.compaction.level = DEBUG
 
-logger.enumerator.name = org.apache.flink.table.store.connector.source.ContinuousFileSplitEnumerator
+logger.enumerator.name = org.apache.paimon.flink.source.ContinuousFileSplitEnumerator
 logger.enumerator.level = DEBUG
 ```
 这里我们只开启提交的 DEBUG，然后在 `flink-1.17.0` 目录下执行 `./bin/start-cluster.sh`
@@ -268,12 +269,12 @@ logger.enumerator.level = DEBUG
 ![start-cluster](../pictures/start-cluster.png)
 
 ### 第四步：初始化表 schema 并启动 Flink SQL CLI
-在 `flink-1.17.0` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 FTS Catalog 作为 init sql
+在 `flink-1.17-SNAPSHOT` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 FTS Catalog 作为 init sql
 ```sql
 -- 设置使用流模式
 SET 'execution.runtime-mode' = 'streaming';
 
--- 创建并使用 FTS Catalog
+-- 创建并使用 Paimon Catalog
 CREATE CATALOG `table_store` WITH (
     'type' = 'table-store',
     'warehouse' = '/tmp/table-store-101'
@@ -283,7 +284,7 @@ USE CATALOG `table_store`;
 
 -- ODS table schema
 
--- 注意在 FTS Catalog 下，创建使用其它连接器的表时，需要将表声明为临时表
+-- 注意在 Paimon Catalog 下，创建使用其它连接器的表时，需要将表声明为临时表
 CREATE TEMPORARY TABLE `ods_lineitem` (
   `l_orderkey` INT NOT NULL,
   `l_partkey` INT NOT NULL,
@@ -448,7 +449,7 @@ SELECT * FROM ads_pricing_summary;
 
 ![ads-query](../pictures/ads-query.gif)
 
-除了查询聚合指标外，FTS 同时支持查询明细数据。假设我们发现 1998 年 12 月发生退货的子订单指标有问题，想通过订单明细进一步排查，可在 batch 模式下进行如下查询
+除了查询聚合指标外，Paimon 同时支持查询明细数据。假设我们发现 1998 年 12 月发生退货的子订单指标有问题，想通过订单明细进一步排查，可在 batch 模式下进行如下查询
 
 ```sql
 SELECT `l_orderkey`, `l_returnflag`, `l_linestatus`, `l_shipdate` FROM `dwd_lineitem` WHERE `l_year` = 1998 AND `l_month` = 12 AND `l_linenumber` = 2 AND `l_shipinstruct` = 'TAKE BACK RETURN';

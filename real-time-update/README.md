@@ -2,12 +2,12 @@
 *Read this in other languages* [简体中文](https://github.com/Myasuka/flink-table-store-101/blob/apple-silicon/real-time-update/README.zh.md)
 
 ## Brief Introduction
-This is a handy demo to illustrate how Flink Table Store (*abbr.* **FTS**) supports real-time records updates at the sacle of ten millions using a laptop. 
+This is a handy demo to illustrate how Paimon supports real-time records updates at the sacle of ten millions using a laptop. 
 
-The diagram of this demo is listed as follows. The TPC-H toolkit and MySQL is running on a customized docker container, and Flink release and FTS dependencies are downloaded and running on your host machine.
+The diagram of this demo is listed as follows. The TPC-H toolkit and MySQL is running on a customized docker container, and Flink release and Paimon dependencies are downloaded and running on your host machine.
 ![diagram](../pictures/diagram.png) 
 
-It utilizes the [TPC-H](https://www.tpc.org/tpch/) toolkit to generate a MySQL order line table with 59 million records as historical full data. Then a streaming ETL pipeline synchronizes the changelog to a DWD table of FTS. The FTS table is multi-partitioned by the year and month. The order's `l_shipdate` is deemed as event time which spans 7 years and generates 84 partitions. It takes 46 min to finish the full snapshot sync, and the overall RPS is 1.3 million records/min with checkpoint interval as 1 min, parallelism as 2, and bucket number as 2.
+It utilizes the [TPC-H](https://www.tpc.org/tpch/) toolkit to generate a MySQL order line table with 59 million records as historical full data. Then a streaming ETL pipeline synchronizes the changelog to a DWD table of Paimon. The Paimon table is multi-partitioned by the year and month. The order's `l_shipdate` is deemed as event time which spans 7 years and generates 84 partitions. It takes 46 min to finish the full snapshot sync, and the overall RPS is 1.3 million records/min with checkpoint interval as 1 min, parallelism as 2, and bucket number as 2.
 
 <table>
     <thead>
@@ -39,7 +39,7 @@ It utilizes the [TPC-H](https://www.tpc.org/tpch/) toolkit to generate a MySQL o
           <td>Two parallelism on a single laptop</td>
         </tr>
         <tr>
-          <td>FTS Bucket Number</td>
+          <td>Paimon Bucket Number</td>
           <td>2</td>
           <td>Two buckets under each partition</td>
         </tr>
@@ -77,7 +77,7 @@ It utilizes the [TPC-H](https://www.tpc.org/tpch/) toolkit to generate a MySQL o
 
 
 ### About Data Genration  
-TPC-H as a classic Ad-hoc query benchmark, it reveals not only the performance of SUT (system under test), but also models all sorts of data requirements close to the business senario in the real-word. This demo chooses the order line table `lineitem` and  Q1 to illustrate how FTS supports real-time records updates at the sacle of ten millions.
+TPC-H as a classic Ad-hoc query benchmark, it reveals not only the performance of SUT (system under test), but also models all sorts of data requirements close to the business senario in the real-word. This demo chooses the order line table `lineitem` and  Q1 to illustrate how Paimon supports real-time records updates at the sacle of ten millions.
 
 The schema of `lineitem` is listed as follow, and each row takes up to 128 bytes.
   <table>
@@ -180,9 +180,9 @@ This query reports the amount of business that was billed, shipped, and returned
 ## Get Started 
 
 ### Brief Step Summary 
-  1. Start MySQL container via docker compose, and the container will generate data with scale factor 10 (about 59 million records) and load data to the table `lineitem` under the database `tpch_s10` automatically. It takes about 2-3 minutes to generate the data, and about 15 minutes to load the data. During this period, you can download and prepare Flink, Flink CDC and FTS dependencies, and start Flink cluster and SQL CLI.
+  1. Start MySQL container via docker compose, and the container will generate data with scale factor 10 (about 59 million records) and load data to the table `lineitem` under the database `tpch_s10` automatically. It takes about 2-3 minutes to generate the data, and about 15 minutes to load the data. During this period, you can download and prepare Flink, Flink CDC and Paimon dependencies, and start Flink cluster and SQL CLI.
 
-  2. After the load finishes, start the streaming CDC job to sync the full snapshot to FTS DWD table.
+  2. After the load finishes, start the streaming CDC job to sync the full snapshot to Paimon DWD table.
   
   3. The container maintains a count down timer with 1 hour to invoke TPC-H's New Sales Refresh Function (RF1) and Old Sales Refresh Function (RF2) to continuously generate new orders and delete orders as updates, with certain intervals. The container keeps generating RF1 and RF2 until it is stopped.
 
@@ -206,40 +206,44 @@ Meanwhile, you can also enter the internal container by `docker compose exec -it
 Finish loading data, current #(record) is 59986052
 ```
 
-### Step2 - Download Flink Release, FTS and Other Dependencies
+
+### Step2 - Download Flink Release, Paimon and Other Dependencies
 This demo uses  Flink 1.17.0, and the extra dependecies needed are
 - Flink MySQL CDC connector 
-- FTS compiled on master branch with Flink 1.16 profile
+- Paimon compiled on master branch with Flink 1.16 profile
 - Hadoop Bundle Jar
 
 To ease the preparation，the mentioned dependecies are already packed under the directory of `flink-table-store-101/flink/lib` of this repository, you can directly download and put them under `flink-1.17.0/lib` on your local machine. If you prefer do it by yourself, you can also reach to
 
 - [flink-sql-connector-mysql-cdc-2.2.1.jar](https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar) 
 - [Hadoop Bundle Jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar) 
-- Switch to master branch and use JKD8 and `mvn clean install -Dmaven.test.skip=true -Pflink-1.14` to build the latest FTS.
+- Switch to master branch and use JKD8 and `mvn clean package -pl :paimon-flink-1.17 -am -DskipTests` to build the latest Paimon.
 
 Now you can list the `lib` directory to check the completeness of denepdnecies.
 ```
 lib
-├── flink-csv-1.17.0.jar
-├── flink-connector-files-1.17.0.jar
-├── flink-dist-1.17.0.jar
-├── flink-json-1.17.0.jar
-├── flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
-├── flink-sql-connector-mysql-cdc-2.2.1.jar
-├── flink-table-store-flink-1.16-0.4-SNAPSHOT.jar
-├── flink-table-api-java-uber-1.17.0.jar
-├── flink-table-planner-loader-1.17.0.jar
-├── flink-table-runtime-1.17.0.jar
-├── log4j-1.2-api-2.17.1.jar
-├── log4j-api-2.17.1.jar
-├── log4j-core-2.17.1.jar
-└── log4j-slf4j-impl-2.17.1.jar
+└──flink-cep-1.17.0.jar
+└──flink-connector-files-1.17.0.jar
+└──flink-csv-1.17.0.jar
+└──flink-dist-1.17.0.jar
+└──flink-json-1.17.0.jar
+└──flink-scala_2.12-1.17.0.jar
+└──flink-shaded-hadoop-2-uber-2.8.3-10.0.
+└──flink-sql-connector-mysql-cdc-2.2.1.ja
+└──flink-table-api-java-uber-1.17.0.jar
+└──flink-table-planner-loader-1.17.0.jar
+└──flink-table-runtime-1.17.0.jar
+└──log4j-1.2-api-2.17.1.jar
+└──log4j-api-2.17.1.jar
+└──log4j-core-2.17.1.jar
+└──log4j-slf4j-impl-2.17.1.jar
+└──paimon-flink-1.17-0.4.0-incubating.jar
 ```
 
 ### Step3 - Modify flink-conf and Start Cluster
 `vim flink-1.17.0/conf/flink-conf.yaml` with following conf
 ```yaml
+jobmanager.rpc.address: localhost
 jobmanager.memory.process.size: 4096m
 taskmanager.memory.process.size: 4096m
 taskmanager.numberOfTaskSlots: 10
@@ -253,17 +257,18 @@ state.checkpoints.dir: file:///tmp/flink-checkpoints
 execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
 ```
 
-If you want to observe the verbose info of compaction and commit for FTS, you can pick one or all of the following properties to `log4j.properties` under the `flink-1.17.0/conf` as needed
+
+If you want to observe the verbose info of compaction and commit for Paimon, you can pick one or all of the following properties to `log4j.properties` under the `flink-1.17.0/conf` as needed
 
 ```
-# Log FTS
-logger.commit.name = org.apache.flink.table.store.file.operation.FileStoreCommitImpl
+# Log Paimon
+logger.commit.name = org.apache.paimon.operation.FileStoreCommitImpl
 logger.commit.level = DEBUG
 
-logger.compaction.name = org.apache.flink.table.store.file.mergetree.compact
+logger.compaction.name = org.apache.paimon.mergetree.compact
 logger.compaction.level = DEBUG
 
-logger.enumerator.name = org.apache.flink.table.store.connector.source.ContinuousFileSplitEnumerator
+logger.enumerator.name = org.apache.paimon.flink.source.ContinuousFileSplitEnumerator
 logger.enumerator.level = DEBUG
 ```
 
@@ -278,7 +283,7 @@ Under `flink-1.17.0` touch a file `schema.sql` and paste the following SQL to in
 -- Switch to streaming mode
 SET 'execution.runtime-mode' = 'streaming';
 
--- Create FTS catalog and set it to current catalog
+-- Create Paimon catalog and set it to current catalog
 CREATE CATALOG `table_store` WITH (
     'type' = 'table-store',
     'warehouse' = '/tmp/table-store-101'
@@ -288,7 +293,7 @@ USE CATALOG `table_store`;
 
 -- ODS table schema
 
--- Note that under the FTS catalog, when you create some other mirroring tables with connectors, you need to explictly state them as temporary
+-- Note that under the Paimon catalog, when you create some other mirroring tables with connectors, you need to explictly state them as temporary
 CREATE TEMPORARY TABLE `ods_lineitem` (
   `l_orderkey` INT NOT NULL,
   `l_partkey` INT NOT NULL,
