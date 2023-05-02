@@ -276,7 +276,7 @@ SET 'execution.runtime-mode' = 'streaming';
 
 -- 创建并使用 Paimon Catalog
 CREATE CATALOG `table_store` WITH (
-    'type' = 'table-store',
+    'type' = 'paimon',
     'warehouse' = '/tmp/table-store-101'
 );
 

@@ -285,7 +285,7 @@ SET 'execution.runtime-mode' = 'streaming';
 
 -- Create Paimon catalog and set it to current catalog
 CREATE CATALOG `table_store` WITH (
-    'type' = 'table-store',
+    'type' = 'paimon',
     'warehouse' = '/tmp/table-store-101'
 );
 
