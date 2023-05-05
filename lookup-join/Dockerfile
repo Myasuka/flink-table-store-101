@@ -18,7 +18,8 @@
 
 FROM mysql:latest
 WORKDIR /tpch/dbgen/
-COPY --from=iamjane/tpch-mysql:latest /tpch/dbgen/ /tpch/dbgen/
+# use arm64 based tpch-mysql image
+COPY --from=myasuka/tpch-mysql:latest /tpch/dbgen/ /tpch/dbgen/
 COPY ./mysql/ /tpch/dbgen/
 
 ARG sf=1

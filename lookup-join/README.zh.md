@@ -2,11 +2,11 @@
 *其它语言版本* [English](https://github.com/Myasuka/flink-table-store-101/tree/apple-silicon/lookup-join/README.md)
 
 ## 用例简介
-Flink Table Store（以下简称 **FTS**）表作为 Lookup 表用于维表关联、预聚合计算聚合指标、结果使用 Zeppelin 可视化的用例。
+Paimon 表作为 Lookup 表用于维表关联、预聚合计算聚合指标、结果使用 Zeppelin 可视化的用例。
 ![front conver](../pictures/front-cover.gif)
 
 #### 关于数据生成  
-[TPC-H](https://www.tpc.org/tpch/) 作为一个经典的 Ad-hoc query 性能测试 benchmark，其包含的数据模型与真实的商业场景十分类似。本用例选取其中三张表 `orders`， `customer` 和 `nation`，适当简化了 TPC-H Q5，展示 FTS 用于维表 join 的场景。
+[TPC-H](https://www.tpc.org/tpch/) 作为一个经典的 Ad-hoc query 性能测试 benchmark，其包含的数据模型与真实的商业场景十分类似。本用例选取其中三张表 `orders`， `customer` 和 `nation`，适当简化了 TPC-H Q5，展示 Paimon 用于维表 join 的场景。
 
 Schema of `orders` 
 <table>
@@ -163,8 +163,8 @@ Schema of `customer`
       - `orders` 订单事实表
       - `customer` 客户维表
       - `nation` 国家维表
-  2. 在本地下载 Flink、Flink CDC 及 FTS 相关依赖，修改配置，启动 SQL CLI
-  3. 将 MySQL 订单明细表通过 Flink CDC 同步到 FTS 对应表，并启动实时写入任务
+  2. 在本地下载 Flink、Flink CDC 及 Paimon 相关依赖，修改配置，启动 SQL CLI
+  3. 将 MySQL 订单明细表通过 Flink CDC 同步到 Paimon 对应表，并启动实时写入任务
 
 ## 快速开始 
 
@@ -172,7 +172,7 @@ Schema of `customer`
 在开始之前，请确保本机 Docker Disk Image 至少有 10G 空间  
 在 `flink-table-store-101/lookup-join` 目录下运行
 ```bash
-docker compose build --no-cache && docker-compose up -d --force-recreate
+DOCKER_BUILDKIT=0 docker compose build --no-cache && docker compose up -d --force-recreate
 ```
 构建镜像阶段将会使用 TPC-H 自带工具产生约 1G 数据 (scale factor = 1)，整个构建过程大约需要 2 分钟左右，镜像构建完成后容器启动，将会自动创建名为 `tpch_s1` 的数据库及上述三张表，并通过 `LOAD DATA INFILE` 自动导入。可以通过 `docker compose logs -f` 来查看导入进度，此过程耗时约 3-4 分钟，
 
@@ -185,29 +185,31 @@ docker compose build --no-cache && docker-compose up -d --force-recreate
 [System] [MY-010931] [Server] /usr/sbin/mysqld: ready for connections. Version: '8.0.30'  socket: '/var/run/mysqld/mysqld.sock'  port: 3306  MySQL Community Server - GPL.
 ```
 
-### 第二步：下载 Flink、FTS 及其他所需依赖
-Demo 运行使用 Flink 1.14.5 版本（ [flink-1.14.5 下载链接](https://flink.apache.org/downloads.html#apache-flink-1145) ），需要的其它依赖如下
+### 第二步：下载 Flink、Paimon 及其他所需依赖
+Demo 运行使用 Flink 1.17.0 版本（ [flink-1.17.0 下载链接](https://flink.apache.org/downloads/#apache-flink-1170) ），需要的其它依赖如下
 - Flink MySQL CDC Connector 
-- 在 master 分支基于 Flink 1.14 编译的 FTS
+- 在 release-0.4 分支基于 Flink 1.17 编译的 Paimon
 - Hadoop Bundle Jar
 
-为方便操作，您可以直接在本项目的 `flink-table-store-101/flink/lib` 目录下载所有依赖，并放置于 `flink-1.14.5/lib` 目录下，也可以自行下载及编译
+为方便操作，您可以直接在本项目的 `flink-table-store-101/flink/lib` 目录下载所有依赖，并放置于 `flink-1.17.0/lib` 目录下，也可以自行下载及编译
 
 - [flink-sql-connector-mysql-cdc-2.2.1.jar](https://repo1.maven.org/maven2/com/ververica/flink-sql-connector-mysql-cdc/2.2.1/flink-sql-connector-mysql-cdc-2.2.1.jar)  
 - [Hadoop Bundle Jar](https://repo.maven.apache.org/maven2/org/apache/flink/flink-shaded-hadoop-2-uber/2.8.3-10.0/flink-shaded-hadoop-2-uber-2.8.3-10.0.jar) 
-- 切换到 master 分支，使用 JKD8 及 `mvn clean install -Dmaven.test.skip=true -Pflink-1.14` [编译](https://nightlies.apache.org/flink/flink-table-store-docs-master/docs/engines/build/) 最新 release-0.3 版本
+- 切换到 release-0.4 分支，使用 JKD8 编译 Paimon 0.4 版本 `mvn clean package -pl :paimon-flink-1.17 -am -DskipTests`
 
 上述步骤完成后，lib 目录结构如图所示  
 ```
 lib
-├── flink-csv-1.14.5.jar
-├── flink-dist_2.11-1.14.5.jar
-├── flink-json-1.14.5.jar
+├── flink-csv-1.17.0.jar
+├── flink-connector-files-1.17.0.jar
+├── flink-dist-1.17.0.jar
+├── flink-json-1.17.0.jar
 ├── flink-shaded-hadoop-2-uber-2.8.3-10.0.jar
-├── flink-shaded-zookeeper-3.4.14.jar
 ├── flink-sql-connector-mysql-cdc-2.2.1.jar
-├── flink-table-store-dist-0.3-SNAPSHOT.jar
-├── flink-table_2.11-1.14.5.jar
+├── flink-table-store-flink-1.17-0.4-SNAPSHOT.jar
+├── flink-table-api-java-uber-1.17.0.jar
+├── flink-table-planner-loader-1.17.0.jar
+├── flink-table-runtime-1.17.0.jar
 ├── log4j-1.2-api-2.17.1.jar
 ├── log4j-api-2.17.1.jar
 ├── log4j-core-2.17.1.jar
@@ -215,8 +217,9 @@ lib
 ```
 
 ### 第三步：修改 flink-conf 配置文件并启动集群
-`vim flink-1.14.5/conf/flink-conf.yaml` 文件，按如下配置修改
+`vim flink-1.17.0/conf/flink-conf.yaml` 文件，按如下配置修改
 ```yaml
+jobmanager.rpc.address: localhost
 jobmanager.memory.process.size: 4096m
 taskmanager.memory.process.size: 4096m
 taskmanager.numberOfTaskSlots: 8
@@ -230,22 +233,22 @@ rest.port: 8081
 rest.address: 0.0.0.0
 ```
 
-若想观察 FTS 的异步合并、提交及流式消费等信息，可以在 `flink-1.14.5/conf` 目录下修改 log4j.properties 文件，增加如下配置
+若想观察 Paimon 的异步合并、提交及流式消费等信息，可以在 `flink-1.17.0/conf` 目录下修改 log4j.properties 文件，增加如下配置
 ```
-# Log FTS
-logger.commit.name = org.apache.flink.table.store.file.operation.FileStoreCommitImpl
+# Log Paimon
+logger.commit.name = org.apache.paimon.operation.FileStoreCommitImpl
 logger.commit.level = DEBUG
 
-logger.compaction.name = org.apache.flink.table.store.file.mergetree.compact
+logger.compaction.name = org.apache.paimon.mergetree.compact
 logger.compaction.level = DEBUG
 
-logger.enumerator.name = org.apache.flink.table.store.connector.source.ContinuousFileSplitEnumerator
+logger.enumerator.name = org.apache.paimon.flink.source.ContinuousFileSplitEnumerator
 logger.enumerator.level = DEBUG
 ```
-然后在 `flink-1.14.5` 目录下执行 `./bin/start-cluster.sh`
+然后在 `flink-1.17.0` 目录下执行 `./bin/start-cluster.sh`
 
 ### 第四步：初始化表 schema 并启动 Flink SQL CLI
-在 `flink-1.14.5` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 FTS Catalog 作为 init sql
+在 `flink-1.17.0` 目录下新建 `schema.sql` 文件，配置用例所需表的 schema 和 Paimon Catalog 作为 init sql
 ```sql
 -- 设置使用流模式
 SET 'execution.runtime-mode' = 'streaming';
@@ -253,9 +256,9 @@ SET 'execution.runtime-mode' = 'streaming';
 -- 设置结果展示为 tableau 模式
 SET 'sql-client.execution.result-mode' = 'tableau';
 
--- 创建并使用 FTS Catalog
+-- 创建并使用 Paimon Catalog
 CREATE CATALOG `table_store` WITH (
-    'type' = 'table-store',
+    'type' = 'paimon',
     'warehouse' = '/tmp/table-store-101'
 );
 
@@ -263,7 +266,7 @@ USE CATALOG `table_store`;
 
 -- ODS table schema
 
--- 注意在 FTS Catalog 下，创建使用其它连接器的表时，需要将表声明为临时表
+-- 注意在 Paimon Catalog 下，创建使用其它连接器的表时，需要将表声明为临时表
 CREATE TEMPORARY TABLE `ods_orders` (
   `o_orderkey`       INTEGER NOT NULL,
   `o_custkey`        INTEGER NOT NULL,
@@ -487,7 +490,7 @@ CREATE TABLE ads_nation_purchase_power_indicator (
 ### 第六步：查询预聚合表并可视化结果
 这一步我们将使用 Zeppelin Notebook 查询聚合表并可视化结果
 
-首先，切换到宿主机 `flink-1.14.5` 目录，mount 宿主机 flink 目录及 table store 目录到 Zeppelin 容器并启动
+首先，切换到宿主机 `flink-1.17.0` 目录，mount 宿主机 flink 目录及 table store 目录到 Zeppelin 容器并启动
 ```bash
 docker run -p 8080:8080 \
   --rm \
@@ -517,7 +520,7 @@ zeppelin.flink.uiWebUrl: host.docker.internal:8081
 ```sql
 %flink.bsql
 CREATE CATALOG table_store WITH (
-    'type' = 'table-store',
+    'type' = 'paimon',
     'warehouse' = '/tmp/table-store-101'
 );
 ```
@@ -545,7 +548,7 @@ SELECT * FROM ads_nation_purchase_power_indicator
 
 ### 第八步：结束 Demo & 释放资源
 1. 执行 `exit;` 退出 Flink SQL CLI
-2. 在 `flink-1.14.5` 下执行 `./bin/stop-cluster.sh` 停止 Flink 集群
+2. 在 `flink-1.17.0` 下执行 `./bin/stop-cluster.sh` 停止 Flink 集群
 3. 执行 `docker stop zeppelin` 停止并删除 Zeppelin 容器
 4. 在 `table-store-101/lookup-join` 目录下执行 
     ```bash
